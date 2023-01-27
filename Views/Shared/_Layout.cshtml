@@ -1,0 +1,82 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+   
+
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] Search and track your booking </title>
+
+    <style>
+        #navbarheading
+        {
+            color: white;
+            font-size: large;
+        }
+       
+        #jobref
+        {
+            max-width: 80%;
+            display: block;
+            margin-right: auto;
+            margin-left: auto;
+        }
+
+        #searchbutton 
+        {
+              display: block;
+              margin-right: auto;
+              margin-left: auto;
+              font-size: 13px;
+              height: 40px;
+              width: 80px;
+        }
+
+    </style>
+
+</head>
+
+<body>
+    <script>
+        
+    </script>
+   @* <div class="alert alert-light" role="alert" style="padding: 2px;margin: 0 auto; text-align: center;">
+        <div class="alert__inner">
+            <p>Get Our Booking Apps</p>
+            <a href="https://apps.apple.com/us/app/ydriv/id1474939369" target="_blank"><img src="~/images/ios.png" alt="buzybeezappios"></a>
+            <a href="https://play.google.com/store/apps/details?id=buzybeez.com.buzybeezcabydriv" target="_blank"><img src="~/images/and.png" alt="buzybeezappandroid" target="_blank"></a>
+        </div>
+    </div>*@
+
+    <!-- As a Navbar -->
+   @* <nav class="navbar navbar-light mb-5" style="background-color: forestgreen">
+        <span class="navbar-brand mb-0 h1" id="navbarheading"> Search and track your booking </span>
+    </nav>*@
+    <!-- As a Navbar -->
+    <!-- Search button -->
+  @*  <div class="container mb-4">
+        <div class="input-group mb-3">
+
+            <input type="text" class="form-control form-control-lg mb-3" id="jobref" placeholder="Enter your job refernce" aria-label="Enter job reference" aria-describedby="button-addon2" required>
+           
+
+        </div>
+        <button class="btn btn-success" id="searchbutton" type="submit" name="searchbutton" onclick="OnHttpPost()">Search</button>
+    </div>*@
+
+
+
+    <!-- Search button -->
+    @*onkeyup="
+        var start = this.selectionStart;
+        var end = this.selectionEnd;
+        this.value = this.value.toUpperCase();
+        this.setSelectionRange(start, end);"*@
+
+    @RenderBody()
+
+    @*@RenderSection("scripts", required: false)*@
+
+</body>
+</html>

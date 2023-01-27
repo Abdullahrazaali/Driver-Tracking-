@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\build\DriverTracking.props" />
+</Project>

@@ -1,0 +1,757 @@
+﻿@*@Html.AntiForgeryToken()*@
+@using DriverTracking;
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+
+<style>
+
+    /* Always set the map height explicitly to define the size of the div
+            * element that contains the map. */
+    #map {
+        height: 100vh;
+        width: auto;
+    }
+
+    .container-fluid {
+        padding-left:0px !important;
+        padding-right:0px !important;
+    }
+
+    label {
+        font-size: 13px;
+    }
+
+    body, label {
+        font-family: "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+</style>
+
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"> 
+@*<script src="https://code.jquery.com/jquery-3.6.0.min.js"
+            integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+            crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>*@
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+
+<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.bundle.min.js" integrity="sha384-xrRywqdh3PHs8keKZN+8zzc5TX0GRTLCcmivcbNJWm2rs5C8PRhcEn3czEjhAO9o" crossorigin="anonymous"></script>
+
+
+
+@*Openlayers CSS file osm 2*@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/openlayers/2.11/lib/OpenLayers.js"></script>
+@*Openlayers CSS file osm 2*@
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/1.1.3/sweetalert-dev.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/1.1.3/sweetalert.css" />
+
+
+<body>
+
+<!-- Customer Details  -->
+@*<div id="jobrefdiv" style="display:none;" class="container">
+
+    <h1>Booking Detail</h1>
+
+    <table style="width:100%" class="mt-3">
+
+        <tr>
+            <td><label id="companyname">Company Name: </label></td>
+            <td><label class="mx-5" for="companyname"></label></td>
+        </tr>
+
+        <tr>
+            <td><label>Customer: </label> </td>
+            <td><label class="mx-5" for="custname"></label></td>
+        </tr>
+
+        <tr>
+            <td><label id="from">From: </label></td>
+            <td><label class="mx-5" for="from"></label></td>
+        </tr>
+
+        <tr>
+            <td><label id="to">To: </label></td>
+            <td><label class="mx-5" for="to"></label></td>
+        </tr>
+
+        <tr>
+            <td><label id="fare">Fare: </label></td>
+            <td><label class="mx-5" for="fare"></label></td>
+        </tr>
+
+        <tr>
+            <td><label id="status">Status: </label></td>
+            <td><label class="mx-5" for="status"></label></td>
+        </tr>
+
+        <tr>
+            <td><label id="date">Date: </label></td>
+            <td><label class="mx-5" for="date"></label></td>
+        </tr>
+
+        <tr>
+            <td><label id="time">Time: </label></td>
+            <td><label class="mx-5" for="time"></label></td>
+        </tr>
+
+        <tr>
+            <td><label id="comment">Comment: </label></td>
+            <td><label class="mx-5" for="comment"></label></td>
+        </tr>
+
+    </table>
+
+    
+    <div class="input-group-append my-3">
+        <button class="btn btn-outline-secondary" type="submit"  id="mapshow">Track your driver</button>
+    </div>
+</div>*@
+<!-- Customer Details  -->
+<!-- map div  -->
+<div class = "container-fluid">
+    <div id="map"></div>
+</div>
+<!-- map div  -->
+@*script for get driver loc data from driverloc table using the socket*@
+<script>
+
+    
+  
+    
+     map = new OpenLayers.Map("map");
+     var mapnik = new OpenLayers.Layer.OSM();
+     map.addLayer(mapnik);
+
+      
+        loadpagedata();
+      
+         function loadpagedata() {
+
+            var url = window.location.href;
+            console.log(url);
+            var id = url.split("id=");
+            var bookingid = id[1];
+            console.log(bookingid);
+            $.ajax({
+                type: "POST",
+                url: "/Home/GetBooking",
+                data: { "_id": bookingid },
+                success: function (data) {
+                    if (data.success) {
+
+                        if(data.obj.flag == 0)
+                        {
+                            var Origin = data.obj.fromtovia[0];
+                            var Olat = Origin.lat;
+                            var Olon = Origin.lon;
+                            OriginMarkerFunction(Olon, Olat)
+                            var lonlat = new OpenLayers.LonLat(Olon, Olat).transform(
+                  new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
+                  new OpenLayers.Projection("EPSG:900913") // to Spherical Mercator
+                );
+                             map.setCenter(lonlat,16);
+
+                        }
+                        else {
+                            if(data.obj.cstate == "cancelled")
+                            {
+                                var Origin = data.obj.fromtovia[0];
+                            var Olat = Origin.lat;
+                            var Olon = Origin.lon;
+                            OriginMarkerFunction(Olon, Olat)
+                             var lonlat = new OpenLayers.LonLat(Olon, Olat).transform(
+                  new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
+                  new OpenLayers.Projection("EPSG:900913") // to Spherical Mercator
+                );
+                             map.setCenter(lonlat,16);
+
+                            }else
+                            {
+                                if(data.obj.jstate == "JobDone")
+                                {
+                                    var Destination = data.obj.fromtovia[1];
+                                    var Dlat = Destination.lat;
+                                    var Dlon = Destination.lon;
+                                    DestinationMarkerFunction(Dlon, Dlat)
+                                    var lonlat = new OpenLayers.LonLat(Dlon, Dlat).transform(
+                                        new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
+                                        new OpenLayers.Projection("EPSG:900913") // to Spherical Mercator
+                                    );
+                                    map.setCenter(lonlat, 16);
+                                }else
+                                {
+                                    var Origin = data.obj.fromtovia[0];
+                                    var Olat = Origin.lat;
+                                    var Olon = Origin.lon;
+                                    OriginMarkerFunction(Olon, Olat)
+                                    var Destination = data.obj.fromtovia[1];
+                                    var Dlat = Destination.lat;
+                                    var Dlon = Destination.lon;
+                                    DestinationMarkerFunction(Dlon, Dlat)
+                                    DriverMarkerFunction(Olon, Olat);
+                                    startcountdown()
+                                }
+                                
+                            }
+                            
+                        }
+                        
+                    }
+                }
+            });
+         }
+
+
+        
+       function startcountdown(){
+           
+           var interval = setInterval(countdown,10000)
+       }
+            function countdown() {
+
+                    var url= window.location.href;
+                    console.log(url);
+                    var id = url.split("id=");
+                    var bookingid=id[1];
+                    console.log(bookingid);
+                              $.ajax({
+                                    type: "POST",
+                                    url: "/Home/CheckBooking",
+                                    data: {"_id": bookingid},
+                                  success: function(data) {
+                                      if(data.success){
+
+                                          var latitude=data.obj.lattitude;
+                                          var longitude=data.obj.longittitude;
+                                          console.log("lat= ",data.obj.lattitude +" "+ "long= ",data.obj.longittitude)
+                                          markers.clearMarkers();
+                                          DriverMarkerFunction(longitude,latitude);
+                       
+                                      }
+                                  }
+                               });
+             }
+
+        //let socket;
+        //socket = io("http://51.89.173.64:4444");
+
+        //socket.on("connect", () => {
+
+        //    console.log(socket.id, "socket connected.");
+
+        //});
+
+    $(document).ready(function(){
+        $('#mapshow').on('click', initialize)
+
+    });
+        var markers;
+        var OriginMarker;
+        var DestinationMarker;
+        //$('#mapshow').click(function () {
+        //$("#map").show();
+        function OriginMarkerFunction(longitude,latitude)
+            {
+           
+                var lonlat = new OpenLayers.LonLat(longitude,latitude).transform(
+                  new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
+                  new OpenLayers.Projection("EPSG:900913") // to Spherical Mercator
+                );
+
+                OriginMarker = new OpenLayers.Layer.Markers("OriginMarkers");
+                map.addLayer(OriginMarker);
+
+                var size = new OpenLayers.Size(21,25);
+                var offset = new OpenLayers.Pixel(-(size.w / 2), -size.h);
+            
+                 var icon = new OpenLayers.Icon("https://www.linkpicture.com/q/location-1-1.png", size, offset);
+                OriginMarker.addMarker(new OpenLayers.Marker(lonlat, icon));
+                OriginMarker.addMarker(new OpenLayers.Marker(lonlat, icon.clone()));
+
+               // markers.addMarker(new OpenLayers.Marker(lonlat));
+               // map.zoomToExtent(markers.getDataExtent(8));
+
+
+               // map.setCenter(lonlat,16);
+
+             //markers.clearMarkers();
+            }
+            function DestinationMarkerFunction(longitude,latitude)
+            {
+           
+                var lonlat = new OpenLayers.LonLat(longitude,latitude).transform(
+                  new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
+                  new OpenLayers.Projection("EPSG:900913") // to Spherical Mercator
+                );
+
+                DestinationMarker = new OpenLayers.Layer.Markers("DestinationMarker");
+                map.addLayer(DestinationMarker);
+
+                var size = new OpenLayers.Size(21,25);
+                var offset = new OpenLayers.Pixel(-(size.w / 2), -size.h);
+            
+                //var icon = new OpenLayers.Icon("https://img.icons8.com/ios-glyphs/30/000000/bad-taxi-driver.png", size, offset);
+                 var icon = new OpenLayers.Icon("https://www.linkpicture.com/q/pin-1.png", size, offset);
+                DestinationMarker.addMarker(new OpenLayers.Marker(lonlat, icon));
+                DestinationMarker.addMarker(new OpenLayers.Marker(lonlat, icon.clone()));
+
+               // markers.addMarker(new OpenLayers.Marker(lonlat));
+               // map.zoomToExtent(markers.getDataExtent(8));
+
+
+                //map.setCenter(lonlat,16);
+
+             //markers.clearMarkers();
+            }
+function DriverMarkerFunction(longitude,latitude)
+            {
+           
+                var lonlat = new OpenLayers.LonLat(longitude,latitude).transform(
+                  new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
+                  new OpenLayers.Projection("EPSG:900913") // to Spherical Mercator
+                );
+
+                markers = new OpenLayers.Layer.Markers("Markers");
+                map.addLayer(markers);
+
+                var size = new OpenLayers.Size(21,25);
+                var offset = new OpenLayers.Pixel(-(size.w / 2), -size.h);
+            
+                //var icon = new OpenLayers.Icon("https://img.icons8.com/ios-glyphs/30/000000/bad-taxi-driver.png", size, offset);
+                 var icon = new OpenLayers.Icon("https://www.linkpicture.com/q/car-placeholder.png", size, offset);
+                markers.addMarker(new OpenLayers.Marker(lonlat, icon));
+                markers.addMarker(new OpenLayers.Marker(lonlat, icon.clone()));
+
+               // markers.addMarker(new OpenLayers.Marker(lonlat));
+               // map.zoomToExtent(markers.getDataExtent(8));
+             
+
+                map.setCenter(lonlat,16);
+
+             //markers.clearMarkers();
+            }
+    function initialize()
+    {
+
+        if (latitude == "" || longitude == "") {
+
+            //$(document).ready(function () {
+            //    $("#map").hide();
+
+            //});
+
+        } else {
+
+        var speed =  parseFloat(@HttpContextAccessor.HttpContext.Session.GetString("speed"))
+        var latitude = parseFloat(@HttpContextAccessor.HttpContext.Session.GetString("lat"))
+        var longitude = parseFloat(@HttpContextAccessor.HttpContext.Session.GetString("lng"))
+        var Originlat = parseFloat(_olat)
+        var Originlng = parseFloat(_olon)
+        var let1;
+        var lng1;
+
+            
+
+            //var uluru = { lat: latitude, lng: longitude };
+
+            //// The map, centered at Uluru
+            //var map = new google.maps.Map(
+            //    document.getElementById('map'), {
+            //        zoom: 16, center: uluru,
+            //        zoomControl: false,
+            //        scaleControl: true,
+            //        disableDefaultUI: true,
+            //        mapTypeControl: false,
+            //        //  draggable: false,
+            //        scaleControl: false,
+            //        // scrollwheel: false,
+            //        navigationControl: false,
+            //        streetViewControl: false,
+            //        mapTypeId: google.maps.MapTypeId.ROADMAP
+
+            //    });
+            //// The marker, positioned at Uluru
+
+            //var marker = new google.maps.Marker({ position: uluru, map: map });
+
+            //var let1;
+            //var lng1;
+            //marker.setMap(map);
+
+            // $("#map").hide();
+
+            
+
+           // open street map open layer library 2
+            var zoom = 16;
+            if(count == 1)
+            {
+
+                //$('#mapshow').prop('disabled',true);
+
+                map = new OpenLayers.Map("map");
+                var mapnik = new OpenLayers.Layer.OSM();
+                map.addLayer(mapnik);
+
+
+            //switch (count)
+            //{
+            //    case 0:
+            //        map = new OpenLayers.Map("map");
+            //        var mapnik = new OpenLayers.Layer.OSM();
+            //        map.addLayer(mapnik);
+            //        count++;
+            //        break;
+            //    default:
+            //}
+
+
+           // route between two point
+           //var start_point = new OpenLayers.Geometry.Point(longitude, latitude);
+           //var end_point = new OpenLayers.Geometry.Point(Originlng,Originlat);
+           //var vector = new OpenLayers.Layer.Vector();
+           //vector.addFeatures([new OpenLayers.Feature.Vector(new OpenLayers.Geometry.LineString([start_point, end_point]).transform(new OpenLayers.Projection("EPSG:4326"), new OpenLayers.Projection("EPSG:900913")))]);
+           //map.addLayer(vector);
+           // route between two point
+
+
+    @*$.ajax({
+                url: '@Url.Action("Map","Home")',
+                type: 'GET',
+                dataType: 'json', // added data type
+
+                success: function(res) {
+
+                }
+            });
+            *@
+
+
+                 //OriginMarker
+                //debugger
+                var originlonlat = new OpenLayers.LonLat(Originlng, Originlat).transform(
+                new OpenLayers.Projection("EPSG:4326"),
+                new OpenLayers.Projection("EPSG:900913")
+               );
+               var originmarkers = new OpenLayers.Layer.Markers("Markers");
+               map.addLayer(originmarkers);
+               originmarkers.addMarker(new OpenLayers.Marker(originlonlat));
+               // map.setCenter(originlonlat,5)
+               // Origin Marker
+
+
+
+            //<img src="~/image/icons8-car-24.png" />
+            //Driver Marker
+                
+                DriverMarkerFunction(Originlng, Originlat);
+
+            }
+            count = 0;
+
+
+            
+           // Driver marker
+
+           // open street map open layer library 2
+            MoveMarker();
+
+            function MoveMarker() {
+
+                //delay so you can see it move
+
+                //setInterv
+                
+                al(function () {
+
+                   // OriginMarker();
+
+                    var str = "";
+                    markers.clearMarkers();
+
+
+                    if (let1 != null || let1 != undefined) {
+                        $.ajax({
+                            url: '@Url.Action("Map","Home")',
+                            type: "POST",
+                            contentType: 'application/json; charset=utf-8',
+                            //data: JSON.stringify({ str : str }),
+                            data: { str: str },
+                            success: function (data) {
+
+                                if (!data.success) {
+                                    debugger
+                                    let1 = data.let;
+                                    lng1 = data.lng;
+
+                                    //center = new google.maps.LatLng(let1, lng1);
+                                    //marker.setPosition(center);
+                                    //map.panTo(center);
+                                    //OriginMarkerFunction();
+
+                                    DriverMarkerFunction(lng1, let1);
+
+                                } else {
+                                }
+                            }
+
+                        });
+
+                    } else {
+                        $.ajax({
+                            url: '@Url.Action("Map","Home")',
+                            type: "POST",
+                            contentType: 'application/json; charset=utf-8',
+                            //data: JSON.stringify({ str : str }),
+                            data: { str: str },
+                            success: function (data) {
+                                if (!data.success) {
+
+                                    let1 = data.let;
+                                    lng1 = data.lng;
+
+                                    //center = new google.maps.LatLng(let1, lng1);
+                                    //marker.setPosition(center);
+                                    //map.panTo(center);
+                                    //OriginMarkerFunction();
+                                    DriverMarkerFunction(lng1,let1);
+
+                                } else {
+                                }
+                            }
+
+                        });
+                    }
+
+
+                }, 5000);
+            }
+        }
+    }
+
+</script>
+
+
+
+<script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2"></script>
+
+
+@*script for get driver data from booking table using the socket*@
+<script>
+
+
+
+        var _olat;
+        var _olon;
+        var count;
+
+    function OnHttpPost() {
+
+        var _jobref = $('#jobref').val();
+        var _custname;
+        var _from;
+        var _to;
+        var _fare;
+        var _comment;
+        var _status;
+        var _companyname;
+        var _oldfare;
+        var _date;
+        var _time;
+
+
+        var inputid = document.getElementById('jobref').value;
+        debugger
+
+        if (inputid !== "" && inputid !== undefined && inputid !== null) {
+
+            var message = inputid;
+
+            //$('#mapshow').prop('disabled', true);
+
+
+
+            let timerInterval
+            Swal.fire({
+                title: 'Processing !',
+                html: 'I will close in <b></b> milliseconds.',
+                timer: 3000,
+                onBeforeOpen: () => {
+                    Swal.showLoading()
+                    timerInterval = setInterval(() => {
+                        Swal.getContent().querySelector('b')
+                            .textContent = Swal.getTimerLeft()
+                    }, 100)
+                },
+                onClose: () => {
+                    clearInterval(timerInterval)
+                }
+            }).then((result) => {
+                if (
+                    /* Read more about handling dismissals below */
+                    result.dismiss === Swal.DismissReason.timer
+                ) {
+                    console.log("")
+                }
+            })
+
+
+            $.ajax({
+                type: "POST",
+                url: '@Url.Action("Index","Home")',
+                data: JSON.stringify({
+                    jobref: _jobref
+                }),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function (data) {
+
+                    if (data != null) {
+
+                        _olat = data.olat;
+                        _olon = data.olon;
+                        
+                        _custname = data.custname;
+                        _from = data.from;
+                        _to = data.to;
+                        _fare = data.fare;
+                        _dispatchtime = data.dispatchtime;
+                        _comment = data.comment;
+                        _status = data.cstate;
+                        _companyname = data.companyname[3];
+                        _oldfare = data.oldfare;
+                        _date = data.date;
+                        _time = data.time;
+
+
+                        count = 0;
+                        // changes here 4 and map
+                        if (data.bookedby == "website" && data.jstate == "allocated" && data.cstate == "despatched" && data.dstate == "Accepted" && data.flag == 1) {
+                            $('#mapshow').prop('disabled', false);
+                            $("#map").show();
+                            count++;
+                        }
+                        else {
+                            //$("#map").hide();
+                            $('#map').empty();
+                        }
+
+                        //if (_comment == "")
+                        //{
+                        //    _comment = "no comment";
+                        //}
+                        switch (_comment) {
+                            case "":
+                                _comment = "no comment"
+                                break;
+                            default:
+                        }
+
+                        switch (_status) {
+                            case "booked":
+                                _status = "Booked";
+                                break;
+                            case "completed":
+                                _status = "Completed";
+                                break;
+                            case "cancelled":
+                                _status = "Cancelled";
+                                _fare = _oldfare;
+                                break;
+                            default:
+                                _status = "no status";
+                                break;
+                        }
+
+
+
+
+                        jQuery("label[for='custname']").html(_custname)
+                        jQuery("label[for='from']").html(_from);
+                        jQuery("label[for='to']").html(_to);
+                        jQuery("label[for='fare']").html("£ " + _fare);
+                        jQuery("label[for='comment']").html(_comment);
+                        jQuery("label[for='status']").html(_status);
+                        jQuery("label[for='companyname']").html(_companyname);
+                        jQuery("label[for='date']").html(_date);
+                        jQuery("label[for='time']").html(_time);
+
+
+                    }
+                    else {
+
+                        let timerInterval
+                        Swal.fire({
+                            title: 'Job Not Found...!',
+                            html: 'I will close in <strong></strong> milliseconds.',
+                            timer: 3000,
+                            onBeforeOpen: () => {
+                                Swal.showLoading()
+                                timerInterval = setInterval(() => {
+                                    Swal.getContent().querySelector('strong')
+                                        .textContent = Swal.getTimerLeft()
+                                }, 100)
+                            },
+                            onClose: () => {
+                                clearInterval(timerInterval)
+                            }
+                        }).then((result) => {
+                            if (
+                                /* Read more about handling dismissals below */
+                                result.dismiss === Swal.DismissReason.timer
+                            ) {
+                                console.log("")
+                            }
+                        })
+
+                        //$("#map").hide();
+                        // window.setTimeout(function(){
+                        //$('#mapshow').prop('disabled', true);
+                        //}, 5000);
+
+                        //swal("Invalid job Reference");
+
+                        setTimeout(function () {
+                            window.location.reload();
+                        }, 3000);
+
+                    }
+
+                    document.getElementById('jobrefdiv').style.display = "block";
+
+                },
+                failure: function (data) {
+                    alert("Invalid");
+                }
+            });
+
+
+
+        }
+        else
+        {
+            Swal.fire({
+              icon: 'error',
+              title: 'Oops...',
+              text: 'Please Enter a job refernce...!',
+            })
+        }
+
+    }
+   
+
+</script>
+</body>
